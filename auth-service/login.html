@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Sistem Perpustakaan</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f4f7f6;
+      }
+      .login-box {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 350px;
+        text-align: center;
+      }
+      h2 {
+        color: #2c3e50;
+        margin-bottom: 25px;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 10px;
+        transition: 0.3s;
+      }
+      .btn-login {
+        background-color: #28a745;
+        color: white;
+      }
+      .btn-login:hover {
+        background-color: #218838;
+      }
+      .btn-reg {
+        background-color: #007bff;
+        color: white;
+      }
+      .btn-reg:hover {
+        background-color: #0069d9;
+      }
+      .info-text {
+        margin-top: 15px;
+        font-size: 13px;
+        color: #666;
+      }
+      .footer-text {
+        margin-top: 20px;
+        font-size: 11px;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-box">
+      <h2>Sistem Perpustakaan</h2>
+
+      <input type="text" id="user" placeholder="Username" required />
+      <input type="password" id="pass" placeholder="Password" required />
+
+      <button class="btn-login" onclick="handleLogin()">Masuk (Login)</button>
+
+      <div class="info-text">Belum punya akun?</div>
+      <button class="btn-reg" onclick="handleRegister()">
+        Daftar Akun Baru
+      </button>
+
+      <div class="footer-text">
+        Daftar terlebih dahulu untuk mendapatkan akses.
+      </div>
+    </div>
+
+    <script>
+      const AUTH_API = "http://localhost:3003";
+
+      // --- FUNGSI LOGIN ---
+      async function handleLogin() {
+        const username = document.getElementById("user").value.trim();
+        const password = document.getElementById("pass").value.trim();
+
+        if (!username || !password) {
+          return Swal.fire(
+            "Oops!",
+            "Username dan Password wajib diisi!",
+            "warning"
+          );
+        }
+
+        try {
+          const res = await fetch(`${AUTH_API}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Berhasil!",
+              text: "Selamat datang, " + username,
+              showConfirmButton: false,
+              timer: 1500,
+            }).then(() => {
+              localStorage.setItem("isLoggedIn", "true");
+              window.location.href = "../index.html";
+            });
+          } else {
+            Swal.fire(
+              "Gagal Login",
+              "Akun tidak ditemukan. Silakan daftar dulu.",
+              "error"
+            );
+          }
+        } catch (err) {
+          Swal.fire("Error", "Server Auth (Port 3003) belum aktif!", "error");
+        }
+      }
+
+      // --- FUNGSI DAFTAR ---
+      async function handleRegister() {
+        const username = document.getElementById("user").value.trim();
+        const password = document.getElementById("pass").value.trim();
+
+        if (!username || !password) {
+          return Swal.fire(
+            "Perhatian",
+            "Isi username & password untuk mendaftar!",
+            "info"
+          );
+        }
+
+        try {
+          const res = await fetch(`${AUTH_API}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            Swal.fire(
+              "Berhasil!",
+              "Akun terdaftar. Silakan klik Login.",
+              "success"
+            );
+            document.getElementById("pass").value = "";
+          } else {
+            Swal.fire(
+              "Gagal Daftar",
+              data.message || "Terjadi kesalahan.",
+              "error"
+            );
+          }
+        } catch (err) {
+          Swal.fire("Error", "Server Auth tidak merespons.", "error");
+        }
+      }
+    </script>
+  </body>
+</html>

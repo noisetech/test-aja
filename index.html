@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Utama - Perpustakaan</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 40px;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f4f7f6;
+      }
+      .container {
+        max-width: 900px;
+        margin: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+      .header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+      h1,
+      h2 {
+        color: #2c3e50;
+        margin-top: 30px;
+      }
+
+      .form-group {
+        background: #f8f9fa;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      input {
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        flex: 1;
+        min-width: 150px;
+      }
+
+      button {
+        cursor: pointer;
+        font-weight: bold;
+        border-radius: 6px;
+        border: none;
+        transition: 0.3s;
+      }
+      .btn-add {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 20px;
+      }
+      .btn-pinjam {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 20px;
+      }
+      .btn-edit {
+        background-color: #ffc107;
+        color: #212529;
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      .btn-delete {
+        background-color: #dc3545;
+        color: white;
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      .btn-logout {
+        background-color: #6c757d;
+        color: white;
+        padding: 8px 15px;
+      }
+      .btn-logout:hover {
+        background-color: #5a6268;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 8px;
+        position: relative;
+      }
+      .action-buttons {
+        margin-top: 10px;
+        display: flex;
+        gap: 5px;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+      }
+      .history-card {
+        border-left: 5px solid #ffc107;
+        background: #fff9e6;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header-flex">
+        <h1>Sistem Perpustakaan</h1>
+        <button class="btn-logout" onclick="handleLogout()">Logout</button>
+      </div>
+
+      <h2>Tambah Koleksi Buku</h2>
+      <div class="form-group">
+        <input type="text" id="newJudul" placeholder="Judul Buku" />
+        <input type="text" id="newPenulis" placeholder="Penulis" />
+        <input type="number" id="newStok" placeholder="Stok" />
+        <button class="btn-add" onclick="tambahBuku()">Simpan Buku</button>
+      </div>
+
+      <h2>Katalog Buku (Port 3001)</h2>
+      <div id="book-list" class="grid">Memuat data buku...</div>
+
+      <h2>Form Pinjam Buku</h2>
+      <div class="form-group">
+        <input type="number" id="bookId" placeholder="ID Buku" />
+        <input type="text" id="namaPeminjam" placeholder="Nama Peminjam" />
+        <button class="btn-pinjam" onclick="pinjamBuku()">Proses Pinjam</button>
+      </div>
+
+      <h2>Riwayat Peminjaman (Port 3002)</h2>
+      <div id="borrow-history">Memuat riwayat...</div>
+    </div>
+
+    <script>
+      // --- [CEK LOGIN] ---
+      if (localStorage.getItem("isLoggedIn") !== "true") {
+        window.location.href = "auth-service/login.html";
+      }
+
+      const BOOK_API = "http://localhost:3001/books";
+      const BORROW_API = "http://localhost:3002/borrow";
+
+      // --- [LOGOUT] ---
+      function handleLogout() {
+        Swal.fire({
+          title: "Logout?",
+          text: "Anda akan keluar dari sistem",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Ya, Logout!",
+          cancelButtonText: "Batal",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            localStorage.removeItem("isLoggedIn");
+            window.location.href = "auth-service/login.html";
+          }
+        });
+      }
+
+      // --- [BOOK FUNCTIONS] ---
+      async function tambahBuku() {
+        const judul_buku = document.getElementById("newJudul").value;
+        const penulis = document.getElementById("newPenulis").value;
+        const stok = document.getElementById("newStok").value;
+
+        if (!judul_buku || !penulis || !stok)
+          return Swal.fire("Gagal", "Lengkapi semua data!", "error");
+
+        try {
+          await fetch(BOOK_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ judul_buku, penulis, stok }),
+          });
+          Swal.fire("Berhasil", "Buku telah ditambahkan", "success");
+          loadBooks();
+          document.getElementById("newJudul").value = "";
+          document.getElementById("newPenulis").value = "";
+          document.getElementById("newStok").value = "";
+        } catch (err) {
+          Swal.fire("Error", "Service 3001 tidak aktif", "error");
+        }
+      }
+
+      async function loadBooks() {
+        try {
+          const res = await fetch(BOOK_API);
+          const data = await res.json();
+          const container = document.getElementById("book-list");
+          if (data.length === 0) {
+            container.innerHTML = "<p>Katalog kosong.</p>";
+            return;
+          }
+          container.innerHTML = data
+            .map(
+              (b) => `
+                    <div class="card">
+                        <strong>ID: ${b.id}</strong><br>
+                        <span style="font-weight: bold;">${b.judul_buku}</span><br>
+                        <small>Karya: ${b.penulis}</small>
+                        <span style="display:block; color:#007bff; font-weight:bold">Stok: ${b.stok}</span>
+                        <div class="action-buttons">
+                            <button class="btn-edit" onclick="updateBuku(${b.id}, '${b.judul_buku}', '${b.penulis}', ${b.stok})">Edit</button>
+                            <button class="btn-delete" onclick="hapusBuku(${b.id})">Hapus</button>
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+        } catch (err) {
+          document.getElementById("book-list").innerHTML = "Service 3001 Off.";
+        }
+      }
+
+      async function updateBuku(id, j_lama, p_lama, s_lama) {
+        const { value: formValues } = await Swal.fire({
+          title: "Edit Data Buku",
+          html:
+            `<input id="swal-input1" class="swal2-input" placeholder="Judul" value="${j_lama}">` +
+            `<input id="swal-input2" class="swal2-input" placeholder="Penulis" value="${p_lama}">` +
+            `<input id="swal-input3" class="swal2-input" type="number" placeholder="Stok" value="${s_lama}">`,
+          focusConfirm: false,
+          preConfirm: () => {
+            return {
+              judul: document.getElementById("swal-input1").value,
+              penulis: document.getElementById("swal-input2").value,
+              stok: document.getElementById("swal-input3").value,
+            };
+          },
+        });
+
+        if (formValues) {
+          try {
+            await fetch(`${BOOK_API}/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                judul_buku: formValues.judul,
+                penulis: formValues.penulis,
+                stok: formValues.stok,
+              }),
+            });
+            Swal.fire("Tersimpan", "Data buku diperbarui", "success");
+            loadBooks();
+          } catch (err) {
+            Swal.fire("Gagal", "Gagal update data", "error");
+          }
+        }
+      }
+
+      async function hapusBuku(id) {
+        Swal.fire({
+          title: "Hapus Buku?",
+          text: "Data yang dihapus tidak bisa kembali!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#dc3545",
+          confirmButtonText: "Ya, Hapus!",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              await fetch(`${BOOK_API}/${id}`, { method: "DELETE" });
+              Swal.fire("Terhapus", "Buku telah dibuang", "success");
+              loadBooks();
+            } catch (err) {
+              Swal.fire("Error", "Gagal menghapus", "error");
+            }
+          }
+        });
+      }
+
+      // --- [BORROW FUNCTIONS] ---
+      async function pinjamBuku() {
+        const book_id = document.getElementById("bookId").value;
+        const nama_peminjam = document.getElementById("namaPeminjam").value;
+        if (!book_id || !nama_peminjam)
+          return Swal.fire("Opps", "Isi ID Buku & Nama!", "warning");
+
+        try {
+          const res = await fetch(BORROW_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ book_id, nama_peminjam }),
+          });
+          const result = await res.json();
+          Swal.fire("Info", result.message, "info");
+          loadBooks();
+          loadHistory();
+        } catch (err) {
+          Swal.fire("Error", "Service 3002 Off", "error");
+        }
+      }
+
+      async function loadHistory() {
+        try {
+          const res = await fetch(BORROW_API);
+          const data = await res.json();
+          const container = document.getElementById("borrow-history");
+          container.innerHTML = data
+            .map(
+              (h) => `
+                    <div class="card history-card">
+                        <strong>Log ID: ${h.id}</strong><br>
+                        Peminjam: <b>${h.nama_peminjam}</b><br>
+                        Buku: <i>${h.buku}</i><br>
+                        <div class="action-buttons">
+                            <button class="btn-edit" onclick="updateRiwayat(${h.id}, '${h.nama_peminjam}', '${h.buku}')">Edit</button>
+                            <button class="btn-delete" onclick="hapusRiwayat(${h.id})">Hapus</button>
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+        } catch (err) {
+          document.getElementById("borrow-history").innerHTML =
+            "Service 3002 Off.";
+        }
+      }
+
+      async function updateRiwayat(id, n_lama, b_lama) {
+        const { value: formValues } = await Swal.fire({
+          title: "Edit Riwayat",
+          html:
+            `<input id="swal-edit-n" class="swal2-input" placeholder="Nama Peminjam" value="${n_lama}">` +
+            `<input id="swal-edit-b" class="swal2-input" placeholder="Info Buku" value="${b_lama}">`,
+          focusConfirm: false,
+          preConfirm: () => {
+            return {
+              nama: document.getElementById("swal-edit-n").value,
+              buku: document.getElementById("swal-edit-b").value,
+            };
+          },
+        });
+
+        if (formValues) {
+          try {
+            await fetch(`${BORROW_API}/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                nama_peminjam: formValues.nama,
+                buku: formValues.buku,
+              }),
+            });
+            Swal.fire("Berhasil", "Riwayat diubah", "success");
+            loadHistory();
+          } catch (err) {
+            Swal.fire("Gagal", "Gagal update riwayat", "error");
+          }
+        }
+      }
+
+      async function hapusRiwayat(id) {
+        Swal.fire({
+          title: "Hapus Log?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Hapus Riwayat",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              await fetch(`${BORROW_API}/${id}`, { method: "DELETE" });
+              Swal.fire("Dihapus", "Catatan riwayat hilang", "success");
+              loadHistory();
+            } catch (err) {
+              Swal.fire("Error", "Gagal hapus", "error");
+            }
+          }
+        });
+      }
+
+      loadBooks();
+      loadHistory();
+    </script>
+  </body>
+</html>
