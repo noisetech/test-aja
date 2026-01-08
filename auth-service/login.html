@@ -92,7 +92,7 @@
     </div>
 
     <script>
-      const AUTH_API = "https://test-aja-eight.vercel.app/auth-service";
+      const AUTH_API = "https://test-aja-eight.vercel.app";
 
       // --- FUNGSI LOGIN ---
       async function handleLogin() {
@@ -110,13 +110,15 @@
         try {
           const res = await fetch(`${AUTH_API}/login`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({ username, password }),
           });
 
           const data = await res.json();
 
-          if (data.success) {
+          if (res.ok && data.success) {
             Swal.fire({
               icon: "success",
               title: "Berhasil!",
@@ -125,21 +127,21 @@
               timer: 1500,
             }).then(() => {
               localStorage.setItem("isLoggedIn", "true");
-              window.location.href = "../index.html";
+              window.location.href = "/index.html";
             });
           } else {
             Swal.fire(
               "Gagal Login",
-              "Akun tidak ditemukan. Silakan daftar dulu.",
+              data.message || "Username atau password salah",
               "error"
             );
           }
         } catch (err) {
-          Swal.fire("Error", "Server Auth (Port 3003) belum aktif!", "error");
+          Swal.fire("Error", "Auth Service tidak dapat dihubungi", "error");
         }
       }
 
-      // --- FUNGSI DAFTAR ---
+      // --- FUNGSI REGISTER ---
       async function handleRegister() {
         const username = document.getElementById("user").value.trim();
         const password = document.getElementById("pass").value.trim();
@@ -155,7 +157,9 @@
         try {
           const res = await fetch(`${AUTH_API}/register`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({ username, password }),
           });
 
@@ -164,19 +168,19 @@
           if (res.ok) {
             Swal.fire(
               "Berhasil!",
-              "Akun terdaftar. Silakan klik Login.",
+              data.message || "Akun terdaftar. Silakan login.",
               "success"
             );
             document.getElementById("pass").value = "";
           } else {
             Swal.fire(
               "Gagal Daftar",
-              data.message || "Terjadi kesalahan.",
+              data.message || "Terjadi kesalahan",
               "error"
             );
           }
         } catch (err) {
-          Swal.fire("Error", "Server Auth tidak merespons.", "error");
+          Swal.fire("Error", "Auth Service tidak dapat dihubungi", "error");
         }
       }
     </script>
