@@ -3,18 +3,22 @@ const cors = require("cors");
 
 const app = express();
 
-// ===== MIDDLEWARE =====
+// ===== CORS PALING ATAS (WAJIB) =====
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// ===== PARSER =====
 app.use(express.json());
-
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
-
-app.options("*", cors());
 
 // ===== TEST ROOT =====
 app.get("/", (req, res) => {
@@ -32,7 +36,6 @@ app.post("/register", (req, res) => {
     });
   }
 
-  // simulasi sukses
   return res.json({
     success: true,
     message: "Registrasi berhasil",
@@ -56,5 +59,5 @@ app.post("/login", (req, res) => {
   });
 });
 
-// ===== EXPORT (WAJIB UNTUK VERCEL) =====
+// ===== EXPORT UNTUK VERCEL =====
 module.exports = app;
